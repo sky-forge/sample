@@ -1,8 +1,16 @@
 <html>
-<meta http-equiv = "refresh" content = 1>
-<script language = "javascript">
-var time = new Date()
-document.write(time)
+//<meta http-equiv = "refresh" content = 1>
+//<script language = "javascript">
+
+<div id="d2">&nbsp;</div>
+<script>
+setInterval(function() {
+	document.getElementById("d2").innerHTML = new Date().toLocaleString();
+	}, 1000);
+
+ 
+//var time = new Date()
+//document.write(time)
 </script>
 //①CDNを読み込む
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
