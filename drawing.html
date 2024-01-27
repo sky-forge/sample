@@ -64,9 +64,10 @@
     x = Math.sqrt(3)
     document.write(x);
     for (var i = 0; i < 100; i++) {
+    b = i * 20
     ctx.strokeStyle = 'lightblue'; 
-    ctx.moveTo(-500 + i * 20,500);
-    ctx.lineTo(((-500 - i * 20)+500)*x,0);
+    ctx.moveTo(-500 - b),0);
+    ctx.lineTo((500 -(-500 - b))/x)+500)*x,500);
     ctx.stroke();
     ctx.strokeStyle = 'lightblue'; 
     ctx.moveTo(-300 + i * 20,0);
