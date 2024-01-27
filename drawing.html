@@ -61,8 +61,10 @@
     // canvasの背景色を設定(指定がない場合にjpeg保存すると背景が黒になる)
     setBgColor();
 
+    ctx.moveto(0,0);
     ctx.lineTo(20, 90);
     ctx.lineTo(0,20);
+    ctx.stroke();
  
     // canvas上でのイベント
     $("#canvas").mousedown(function(){
