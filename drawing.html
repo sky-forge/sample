@@ -65,8 +65,8 @@
     document.write(x);
     for (var i = 0; i < 100; i++) {
     ctx.strokeStyle = 'lightblue'; 
-    ctx.moveTo(-400 + i * 20,400);
-    ctx.lineTo(-400 + i * 20 + 400,0);
+    ctx.moveTo(-500 + i * 20,500);
+    ctx.lineTo(((-500 - i * 20)+500)*x,0);
     ctx.stroke();
     ctx.strokeStyle = 'lightblue'; 
     ctx.moveTo(-300 + i * 20,0);
