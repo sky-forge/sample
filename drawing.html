@@ -54,6 +54,8 @@
     var cnvs1 = document.getElementById('canvas');
     var ctx = cnvs.getContext('2d');
     var ctx1 = cnvs1.getContext('2d');
+    var pointX = [];
+    var pointY = [];
  
     // 変数宣言
     const cnvWidth = 800;
@@ -103,15 +105,53 @@
     	ctx.stroke();
     	ctx1.beginPath();
     }
+    //枠線の交点の座標リストの作成
+	//let pointX = [];
+	//let pointY = [];
+	var nx = 800 / (Math.sqrt(3) * 15)
+	var ny = 500 / 30
+	for (var i = 0; i < nx; i++){
+    		for (var j = 0; j < ny; j++){
+    			if (i == 0){
+				pointX.push(0);
+				pointY.push(30*j);	 
+    			}else if(i % 2 == 0){
+				pointX.push(15 * Math.sqrt(3) * i);
+				pointY.push(30 * j);	 
+			}else if(i % 2 != 0){
+				pointX.push(15 * Math.sqrt(3) * i);
+				pointY.push(30 * j + 15);
+			}
+    		}
+	}
+	//console.log(pointX)
+	//console.log(pointY)
     };
+
+
+    //最寄りの目盛交点座標を取得する関数
+	function nearbypoint(eX,eY){
+		var distance_list = [];
+		for (var i = 0; i < pointX.length; i++){
+			var d = Math.sqrt((pointX[i] - eX)**2 + (pointY[i] - eY)**2);
+			distance_list.push(d);
+		}
+		console.log(distance_list)
+		var min_distance = Math.min.apply(null,distance_list);
+		var n = distance_list.indexOf(min_distance);
+		console.log(n)
+		return n;
+	};
+		
+
  
     // Canvas上の座標を取得する関数
     window.addEventListener('load', function(){
     document.getElementById("canvas").addEventListener('mousemove', logPosition);
     })
 	function logPosition(event) {
-		console.log("offsetX: " + event.offsetX);
-		console.log("offsetY: " + event.offsetY);
+		//console.log("offsetX: " + event.offsetX);
+		//console.log("offsetY: " + event.offsetY);
 		document.getElementById("area1").innerText = "X:"+event.offsetX+",Y:"+event.offsetY;
     	};
     window.addEventListener('load', function(){
@@ -122,13 +162,22 @@
       	ctx1.strokeStyle = 'rgba('+cnvColor1+')';
 	if (clickFlg== '0'){
 	clickFlg = 1;
-	var first_pointX = event.offsetX;
-	var first_pointY = event.offsetY;
+	var eX = event.offsetX
+	var eY = event.offsetY
+	var n = nearbypoint(eX,eY)
+	var first_pointX = pointX[n]
+	var first_pointY = pointY[n]
+	
+	
+
 	
 	ctx1.moveTo(first_pointX, first_pointY);
 	}else if (clickFlg == '1'){
-	var second_pointX = event.offsetX;
-	var second_pointY = event.offsetY;	
+	var eX = event.offsetX
+	var eY = event.offsetY
+	var n = nearbypoint(eX,eY)
+	var second_pointX = pointX[n];
+	var second_pointY = pointY[n];	
 	ctx1.lineTo(second_pointX, second_pointY);
 	ctx1.stroke();
 	}else{
@@ -229,7 +278,7 @@
       
     }
   </script>
-<div id="area1">変更前</div>
+<div id="area1">X:none,Y:none</div>
 
 
 
