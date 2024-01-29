@@ -26,6 +26,7 @@
 </head>
 <body>
   <button type=“button” onclick="location.href='https://sky-forge.github.io/sample/'">ホーム画面に戻る.</button></br>
+  <p id=’target’></p>
   <canvas id="canvas" width="800" height="500" style="border: solid 1px #000;box-sizing: border-box;"></canvas>
   
   <div class="option">
@@ -43,62 +44,127 @@
     </div>
   </div>
   <input type="button" value="clear" id="clear">
+  <input type="button" value="消しゴム" id="eraser">
   <a id="download" href="#" download="canvas.jpg">ダウンロード</a>
   <div id="result"><img decoding="async" src=""></div>
  
   <script>
     // canvas
     var cnvs = document.getElementById('canvas');
+    var cnvs1 = document.getElementById('canvas');
     var ctx = cnvs.getContext('2d');
+    var ctx1 = cnvs1.getContext('2d');
  
     // 変数宣言
     const cnvWidth = 800;
     const cnvHeight = 650;
+    
+
     var cnvColor = "255, 0, 0, 1";  // 線の色
     var cnvBold = 5;  // 線の太さ
-    var clickFlg = 0;  // クリック中の判定 1:クリック開始 2:クリック中
+    var cnvColor1 = "255, 0, 0, 1";  // 線の色
+    var cnvBold1 = 5;  // 線の太さ
+
+    var clickFlg = 0;  // クリック中の判定 0:選択無し 1:第1点選択 2:クリック中
     var bgColor = "rgb(255,255,255)";
+
+    
  
     // canvasの背景色を設定(指定がない場合にjpeg保存すると背景が黒になる)
     setBgColor();
-    
-    var x = Math.sqrt(3);
-    document.write(x);
-    for (var i = 0; i < 100; i++) {
-    var b = i * 30 - 1500
-    var c = -i * 30 + 1500
-    var d = i * 30 * x
-    ctx.strokeStyle = 'lightblue'; 
-    ctx.moveTo(0,b);
-    ctx.lineTo((500 - b)*x,500);
-    ctx.stroke();
-    ctx.strokeStyle = 'lightblue'; 
-    ctx.moveTo(0,c);
-    ctx.lineTo((c)*x,0);
-    ctx.stroke();
-    ctx.strokeStyle = 'lightblue'; 
-    ctx.moveTo(d,0);
-    ctx.lineTo(d,650);
-    ctx.stroke();
-    ctx.moveTo(d+x*30*0.5,0);
-    ctx.lineTo(d+x*30*0.5,650);
-    ctx.stroke();
 
-    } 
+    base_line()
+    
+    //枠線
+    function base_line(){
+	var cnvBold = 1;
+	ctx.lineWidth = cnvBold;
+	var x = Math.sqrt(3);
+    	//document.write(x);
+	ctx1.beginPath();
+    for (var i = 0; i < 100; i++) {
+    	var b = i * 30 - 1500
+    	var c = -i * 30 + 1500
+    	var d = i * 30 * x
+    	ctx.strokeStyle = 'lightblue'; 
+    	ctx.moveTo(0,b);
+    	ctx.lineTo((500 - b)*x,500);
+    	ctx.stroke();
+    	ctx.strokeStyle = 'lightblue'; 
+    	ctx.moveTo(0,c);
+    	ctx.lineTo((c)*x,0);
+    	ctx.stroke();
+    	ctx.strokeStyle = 'lightblue'; 
+    	ctx.moveTo(d+x*30*0.5,0);
+    	ctx.lineTo(d+x*30*0.5,650);
+    	ctx.stroke();
+    	ctx.moveTo(d,0);
+    	ctx.lineTo(d,650);
+    	ctx.stroke();
+    	ctx1.beginPath();
+    }
+    };
  
+    // Canvas上の座標を取得する関数
+    window.addEventListener('load', function(){
+    document.getElementById("canvas").addEventListener('mousemove', logPosition);
+    })
+	function logPosition(event) {
+		console.log("offsetX: " + event.offsetX);
+		console.log("offsetY: " + event.offsetY);
+		document.getElementById("area1").innerText = "X:"+event.offsetX+",Y:"+event.offsetY;
+    	};
+    window.addEventListener('load', function(){
+    document.getElementById("canvas").addEventListener('click', draws);
+	})
+	function draws(event) {
+      	ctx1.lineWidth = cnvBold1;
+      	ctx1.strokeStyle = 'rgba('+cnvColor1+')';
+	if (clickFlg== '0'){
+	clickFlg = 1;
+	var first_pointX = event.offsetX;
+	var first_pointY = event.offsetY;
+	
+	ctx1.moveTo(first_pointX, first_pointY);
+	}else if (clickFlg == '1'){
+	var second_pointX = event.offsetX;
+	var second_pointY = event.offsetY;	
+	ctx1.lineTo(second_pointX, second_pointY);
+	ctx1.stroke();
+	}else{
+	ctx1.stroke();
+	}
+	};
+
+    window.addEventListener('load', function(){
+    document.getElementById("canvas").addEventListener('mouseout', cancel);
+    })
+	function cancel(event) {
+	ctx1.beginPath();
+	clickFlg = 0;
+	};
+
+    //消しゴム
+    function erase(event) {
+	ctx1.globalCompositeOperation = 'destination-out';
+	};
+
     // canvas上でのイベント
-    $("#canvas").mousedown(function(){
-      clickFlg = 1; // マウス押下開始
-    }).mouseup(function(){
-      clickFlg = 0; // マウス押下終了
-    }).mousemove(function(e){
+    
+    //$("#canvas").mousedown(function(){
+    //  clickFlg = 1; // マウス押下開始
+    //  const mousePos = getMousePos(canvas, event);
+
+    //}).mouseup(function(){
+    //  clickFlg = 0; // マウス押下終了
+    //}).mousemove(function(e){
       // マウス移動処理
-      if(!clickFlg) return false;
-      draw(e.offsetX, e.offsetY);
-    });
+    //  if(!clickFlg) return false;
+    //  draw(e.offsetX, e.offsetY);
+    //});
  
     // 描画処理
-    function draw(x, y) {
+    function draw_free(x, y) {
       ctx.lineWidth = cnvBold;
       ctx.strokeStyle = 'rgba('+cnvColor+')';
       // 初回処理の判定
@@ -112,7 +178,13 @@
       }
       ctx.stroke();
     };
- 
+
+    // 色の変更
+    $(".color a").click(function(){
+      cnvColor = $(this).data("color");
+      return false;
+    });
+
     // 色の変更
     $(".color a").click(function(){
       cnvColor = $(this).data("color");
@@ -124,12 +196,24 @@
       cnvBold = $(this).data("bold");
       return false;
     });
+
+
+
  
     // 描画クリア
     $("#clear").click(function(){
       ctx.clearRect(0,0,cnvWidth,cnvHeight);
       setBgColor();
+      base_line();
+      ctx1.beginPath();
+      
+      
     });
+
+    //消しゴム
+　　$("#eraser").click(function(){
+	ctx1.globalCompositeOperation = 'destination-out';
+	})
  
     // canvasを画像で保存
     $("#download").click(function(){
@@ -142,8 +226,16 @@
       // canvasの背景色を設定(指定がない場合にjpeg保存すると背景が黒になる)
       ctx.fillStyle = bgColor;
       ctx.fillRect(0,0,cnvWidth,cnvHeight);
+      
     }
   </script>
+<div id="area1">変更前</div>
+
+
+
+
+
+
 </body>
 
 <iframe width="800" height= 650  frameborder="0" seamless src = "https://p3d.in/e/LiI18">
