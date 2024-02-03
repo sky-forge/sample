@@ -43,8 +43,10 @@
       <a href="" class="large" data-bold="10">大</a>
     </div>
   </div>
+  <input type="button" value="線を引く" id="add_obj">
+  <input type="button" value="線を消す" id="del_obj">
+  <input type="button" value="(準備中)線を分割する" id="del_obj">
   <input type="button" value="clear" id="clear">
-  <input type="button" value="消しゴム" id="eraser">
   <a id="download" href="#" download="canvas.jpg">ダウンロード</a>
   <div id="result"><img decoding="async" src=""></div>
  
@@ -54,8 +56,14 @@
     var cnvs1 = document.getElementById('canvas');
     var ctx = cnvs.getContext('2d');
     var ctx1 = cnvs1.getContext('2d');
+    var eX = 0;
+    var eY = 0;
     var pointX = [];
     var pointY = [];
+    var click_pointX = [];
+    var click_pointY = [];
+    var list_obj = [];
+	var command_sw = 0;//実行するコマンドのflag #0:線分追加、#9:線分削除
  
     // 変数宣言
     const cnvWidth = 800;
@@ -139,11 +147,60 @@
 		console.log(distance_list)
 		var min_distance = Math.min.apply(null,distance_list);
 		var n = distance_list.indexOf(min_distance);
+		click_pointX.push(pointX[n])
+		click_pointY.push(pointY[n])
+
 		console.log(n)
 		return n;
 	};
 		
 
+	//クリックした点から線分までの距離を求める関数。
+	function min_d2(x0, y0, x1, y1, x2, y2) {
+ 		var a = x2 - x1;
+		var b = y2 - y1;
+		var a2 = a * a;
+		var b2 = b * b;
+		var r2 = a2 + b2;
+		var tt = -(a*(x1-x0)+b*(y1-y0));
+		if( tt < 0 ) {
+			return Math.sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
+		}
+		if( tt > r2 ) {
+			return Math.sqrt((x2-x0)*(x2-x0) + (y2-y0)*(y2-y0));
+		}
+        var f1 = a*(y1-y0)-b*(x1-x0);
+        return Math.sqrt((f1*f1)/r2);
+
+    };
+
+	//クリックした点から最も近い線分を求める関数。
+	function nearest_line(eX,eY){
+		var distance_list1 = [];
+        //console.log(list_obj);
+		for (var i = 0; i < list_obj.length; i++){
+			var x0 = eX
+			var y0 = eY
+			var x1 = list_obj[i][1]
+			var y1 = list_obj[i][2]
+			var x2 = list_obj[i][3]
+			var y2 = list_obj[i][4]
+			var d = min_d2(x0, y0, x1, y1, x2, y2)
+			distance_list1.push(d);
+		}
+        console.log("distance_list");
+		console.log(distance_list1);
+		var min_distance = Math.min.apply(null,distance_list1);
+        if (min_distance < 5){
+            console.log("min_distance:"+min_distance);
+            var n = distance_list1.indexOf(min_distance);
+        }else{
+            var n = 'None';
+        }
+		console.log("del_line:"+n);
+		return n;
+	};
+		
  
     // Canvas上の座標を取得する関数
     window.addEventListener('load', function(){
@@ -155,31 +212,82 @@
 		document.getElementById("area1").innerText = "X:"+event.offsetX+",Y:"+event.offsetY;
     	};
     window.addEventListener('load', function(){
-    document.getElementById("canvas").addEventListener('click', draws);
+    document.getElementById("canvas").addEventListener('click', command_select);
 	})
-	function draws(event) {
+
+	function command_select(event) {
+		eX = event.offsetX
+		eY = event.offsetY
+		if (command_sw== '0'){
+			draws(eX,eY);
+		}else if (command_sw == '9'){
+			del_object(eX,eY);
+        }
+        redraw()
+	};
+
+    //canvasを再描画する。
+    function redraw(){
+        
+        ctx.clearRect(0,0,cnvWidth,cnvHeight);
+        setBgColor();
+        base_line();
+        ctx1.beginPath();
+        ctx1.lineWidth = cnvBold1;
+        ctx1.strokeStyle = '#ff0000';
+
+        for (var i = 0; i < list_obj.length; i++){
+	    var x1 = list_obj[i][1]
+	    var y1 = list_obj[i][2]
+	    var x2 = list_obj[i][3]
+	    var y2 = list_obj[i][4]
+        ctx1.beginPath();
+        ctx1.moveTo(x1,y1);
+        ctx1.lineTo(x2,y2);
+        ctx1.stroke();
+        ctx1.beginPath();
+        }
+    };
+
+    //オブジェクトをリストから削除する。
+	function del_object(eX,eY) {
+		var n = nearest_line(eX,eY);
+        if (n != 'None'){
+            console.log(list_obj)
+            list_obj.splice(n,1)
+            console.log(list_obj)
+        }
+	};
+
+    //線を加える
+	function draws(eX,eY) {
       	ctx1.lineWidth = cnvBold1;
       	ctx1.strokeStyle = 'rgba('+cnvColor1+')';
 	if (clickFlg== '0'){
 	clickFlg = 1;
-	var eX = event.offsetX
-	var eY = event.offsetY
+	//var eX = event.offsetX
+	//var eY = event.offsetY
 	var n = nearbypoint(eX,eY)
 	var first_pointX = pointX[n]
 	var first_pointY = pointY[n]
-	
-	
-
-	
 	ctx1.moveTo(first_pointX, first_pointY);
 	}else if (clickFlg == '1'){
-	var eX = event.offsetX
-	var eY = event.offsetY
 	var n = nearbypoint(eX,eY)
 	var second_pointX = pointX[n];
 	var second_pointY = pointY[n];	
 	ctx1.lineTo(second_pointX, second_pointY);
 	ctx1.stroke();
+	//第1点の呼び出し
+	var click_quants = click_pointX.length
+	var p = click_quants - 2
+	//オブジェクト名の作成
+	var obj_quants = list_obj.length
+	var obj_name = "line_"+ obj_quants
+	//オブジェクトリスト作成(一時的)とオブジェクトリスト作成(メイン)への追加
+    var visible = 1
+	var temp_list_obj = [obj_name,click_pointX[p],click_pointY[p],second_pointX,second_pointY,visible]
+	list_obj.push(temp_list_obj)
+	console.log(list_obj)
 	}else{
 	ctx1.stroke();
 	}
@@ -194,9 +302,9 @@
 	};
 
     //消しゴム
-    function erase(event) {
-	ctx1.globalCompositeOperation = 'destination-out';
-	};
+    //function erase(event) {
+	//ctx1.globalCompositeOperation = 'destination-out';
+	//};
 
     // canvas上でのイベント
     
@@ -228,6 +336,18 @@
       ctx.stroke();
     };
 
+    // 線分追加モードの変更　2024-02-03追加
+　　$("#add_obj").click(function(){
+	command_sw = "0";
+	console.log(command_sw);	
+　　})
+
+    // 線分削除モードの変更　2024-02-03追加
+　　$("#del_obj").click(function(){
+	command_sw = "9";
+	console.log(command_sw);
+　　})
+
     // 色の変更
     $(".color a").click(function(){
       cnvColor = $(this).data("color");
@@ -252,6 +372,7 @@
     // 描画クリア
     $("#clear").click(function(){
       ctx.clearRect(0,0,cnvWidth,cnvHeight);
+      list_obj.splice(0)
       setBgColor();
       base_line();
       ctx1.beginPath();
@@ -260,9 +381,9 @@
     });
 
     //消しゴム
-　　$("#eraser").click(function(){
-	ctx1.globalCompositeOperation = 'destination-out';
-	})
+　　//$("#eraser").click(function(){
+	//ctx1.globalCompositeOperation = 'destination-out';
+	//})
  
     // canvasを画像で保存
     $("#download").click(function(){
@@ -274,8 +395,7 @@
     function setBgColor(){
       // canvasの背景色を設定(指定がない場合にjpeg保存すると背景が黒になる)
       ctx.fillStyle = bgColor;
-      ctx.fillRect(0,0,cnvWidth,cnvHeight);
-      
+      ctx.fillRect(0,0,cnvWidth,cnvHeight); 
     }
   </script>
 <div id="area1">X:none,Y:none</div>
