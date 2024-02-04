@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>枠線</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<style>
+  .option{
+    width: 250px;
+  }
+  .color > a{
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+  }
+  .black{
+    background-color: #000000;
+  }
+  .red{
+    background-color: #ff0000;
+  }
+  .blue{
+    background-color: #0000ff;
+  }
+</style>
+</head>
+<body>
+  <button type=“button” onclick="location.href='https://sky-forge.github.io/sample/'">ホーム画面に戻る.</button></br>
+  <p id=’target’></p>
+  <canvas id="canvas" width="800" height="500" style="border: solid 1px #000;box-sizing: border-box;"></canvas>
+  
+  <div class="option">
+    <div class="color">
+      色：
+      <a href="" class="black" data-color="0, 0, 0, 1"></a>
+      <a href="" class="red" data-color="255, 0, 0, 1"></a>
+      <a href="" class="blue" data-color="0, 0, 255, 1"></a>
+    </div>
+    <div class="bold">
+      太さ：
+      <a href="" class="small" data-bold="1">小</a>
+      <a href="" class="middle" data-bold="5">中</a>
+      <a href="" class="large" data-bold="10">大</a>
+    </div>
+  </div>
+  <input type="button" value="線を引く" id="add_obj">
+  <input type="button" value="線を消す" id="del_obj">
+  <input type="button" value="(準備中)線を分割する" id="sep_obj">
+  <input type="button" value="clear" id="clear">
+  <a id="download" href="#" download="canvas.jpg">ダウンロード</a>
+  <div id="result"><img decoding="async" src=""></div>
+ 
+  <script>
+    // canvas
+    var cnvs = document.getElementById('canvas');
+    var cnvs1 = document.getElementById('canvas');
+    var ctx = cnvs.getContext('2d');
+    var ctx1 = cnvs1.getContext('2d');
+    var eX = 0;
+    var eY = 0;
+    var pointX = [];
+    var pointY = [];
+    var click_pointX = [];
+    var click_pointY = [];
+    var list_obj = [];
+    var list_distance = [];
+	var command_sw = 0;//実行するコマンドのflag #0:線分追加、#9:線分削除
+ 
+    // 変数宣言
+    const cnvWidth = 800;
+    const cnvHeight = 650;
+    
+
+    var cnvColor = "255, 0, 0, 1";  // 線の色
+    var cnvBold = 5;  // 線の太さ
+    var cnvColor1 = "255, 0, 0, 1";  // 線の色
+    var cnvBold1 = 5;  // 線の太さ
+
+    var clickFlg = 0;  // クリック中の判定 0:選択無し 1:第1点選択 2:クリック中
+    var bgColor = "rgb(255,255,255)";
+
+    
+ 
+    // canvasの背景色を設定(指定がない場合にjpeg保存すると背景が黒になる)
+    setBgColor();
+
+    base_line()
+    
+    //枠線
+    function base_line(){
+	var cnvBold = 1;
+	ctx.lineWidth = cnvBold;
+	var x = Math.sqrt(3);
+    	//document.write(x);
+	ctx1.beginPath();
+    for (var i = 0; i < 100; i++) {
+    	var b = i * 30 - 1500
+    	var c = -i * 30 + 1500
+    	var d = i * 30 * x
+    	ctx.strokeStyle = 'lightblue'; 
+    	ctx.moveTo(0,b);
+    	ctx.lineTo((500 - b)*x,500);
+    	ctx.stroke();
+    	ctx.strokeStyle = 'lightblue'; 
+    	ctx.moveTo(0,c);
+    	ctx.lineTo((c)*x,0);
+    	ctx.stroke();
+    	ctx.strokeStyle = 'lightblue'; 
+    	ctx.moveTo(d+x*30*0.5,0);
+    	ctx.lineTo(d+x*30*0.5,650);
+    	ctx.stroke();
+    	ctx.moveTo(d,0);
+    	ctx.lineTo(d,650);
+    	ctx.stroke();
+    	ctx1.beginPath();
+    }
+    //枠線の交点の座標リストの作成
+	//let pointX = [];
+	//let pointY = [];
+	var nx = 800 / (Math.sqrt(3) * 15)
+	var ny = 500 / 30
+	for (var i = 0; i < nx; i++){
+    		for (var j = 0; j < ny; j++){
+    			if (i == 0){
+				pointX.push(0);
+				pointY.push(30*j);	 
+    			}else if(i % 2 == 0){
+				pointX.push(15 * Math.sqrt(3) * i);
+				pointY.push(30 * j);	 
+			}else if(i % 2 != 0){
+				pointX.push(15 * Math.sqrt(3) * i);
+				pointY.push(30 * j + 15);
+			}
+    		}
+	}
+	//console.log(pointX)
+	//console.log(pointY)
+    };
+
+
+    //最寄りの目盛交点座標を取得する関数
+	function nearbypoint(eX,eY){
+		var distance_list = [];
+		for (var i = 0; i < pointX.length; i++){
+			var d = Math.sqrt((pointX[i] - eX)**2 + (pointY[i] - eY)**2);
+			distance_list.push(d);
+		}
+		console.log(distance_list)
+		var min_distance = Math.min.apply(null,distance_list);
+		var n = distance_list.indexOf(min_distance);
+		click_pointX.push(pointX[n])
+		click_pointY.push(pointY[n])
+
+		console.log(n)
+		return n;
+	};
+		
+
+	//クリックした点から線分までの距離を求める関数。
+	function min_d2(x0, y0, x1, y1, x2, y2) {
+ 		var a = x2 - x1;
+		var b = y2 - y1;
+		var a2 = a * a;
+		var b2 = b * b;
+		var r2 = a2 + b2;
+		var tt = -(a*(x1-x0)+b*(y1-y0));
+		if( tt < 0 ) {
+			return Math.sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
+		}
+		if( tt > r2 ) {
+			return Math.sqrt((x2-x0)*(x2-x0) + (y2-y0)*(y2-y0));
+		}
+        var f1 = a*(y1-y0)-b*(x1-x0);
+        return Math.sqrt((f1*f1)/r2);
+
+    };
+
+	//クリックした点から最も近い線分を求める関数。
+	function nearest_line(eX,eY){
+		var distance_list1 = [];
+        //console.log(list_obj);
+		for (var i = 0; i < list_obj.length; i++){
+			var x0 = eX
+			var y0 = eY
+			var x1 = list_obj[i][1]
+			var y1 = list_obj[i][2]
+			var x2 = list_obj[i][3]
+			var y2 = list_obj[i][4]
+			var d = min_d2(x0, y0, x1, y1, x2, y2)
+			distance_list1.push(d);
+		}
+        console.log("distance_list");
+		console.log(distance_list1);
+		var min_distance = Math.min.apply(null,distance_list1);
+        if (min_distance < 5){
+            console.log("min_distance:"+min_distance);
+            var n = distance_list1.indexOf(min_distance);
+        }else{
+            var n = 'None';
+        }
+		console.log("del_line:"+n);
+		return n;
+	};
+
+    function cross_point(n,eX,eY){
+        var list_line_point = [];
+        
+        for (var i = 0; i < list_obj.length; i++){
+            if (i != n){
+                //選択した線分nと線分iが交差するかを判定する。
+                var x0 = list_obj[n][1];
+                var y0 = list_obj[n][2];
+                var x1 = list_obj[n][3];
+                var y1 = list_obj[n][4];
+                
+                var x2 = list_obj[i][1];
+                var y2 = list_obj[i][2];
+                var x3 = list_obj[i][3];
+                var y3 = list_obj[i][4];
+
+                var d0 = Math.sqrt((x0 - eX)**2 + (y0 - eY)**2);
+                var d1 = Math.sqrt((x1 - eX)**2 + (y1 - eY)**2);
+
+                if (d0 > d1){
+                    list_line_point.push([x0,y0,d0])
+                    list_line_point.push([x1,y1,d1])
+                }else{
+                    list_line_point.push([x1,y1,d1])
+                    list_line_point.push([x0,y0,d0])
+                }
+
+                list_line_point.push([x0,y0,d0])
+                list_line_point.push([x1,y1,d1])
+
+                var ta=(x2-x3)*(y0-y2)+(y2-y3)*(x2-x0)
+                var tb=(x2-x3)*(y1-y2)+(y2-y3)*(x2-x1)
+                if (ta*tb<0){
+                    if (x0 == x1){
+                        var px = x0
+                        var py = (y3 - y2) / (x3 - x2) * (x0 - x2) + y2
+                    }else if (x2 == x3) {
+                        px = x2
+                        py = (y1 - y0) / (x1 - x0) * (x2 - x0) + y0
+                    }else{
+                        var a1 = (y1 - y0) / (x1 - x0)
+                        var a3 = (y3 - y2) / (x3 - x2)
+                        var px = (a1 * x0 - y0 - a3 * x2 + y2) / (a1 - a3)
+                        var py = (y1 - y0) / (x1 - x0) * (px - x0) + y0
+                    }
+                    //console.log("交差する")
+                    console.log(px)
+                    console.log(py)
+                    var d = Math.sqrt((px - eX)**2 + (py - eY)**2);
+                    list_line_point.push([px,py,d])
+                }
+            }
+        }
+        var list_distance = [];
+        var list_distance1 = [];
+        for (var j = 0; j < list_line_point.length; j++){
+            list_distance.push(list_line_point[j][2]);
+            list_distance1.push(list_line_point[j][2]);
+            console.log("追加")
+        }
+        console.log(list_distance)
+        var min_distance = Math.min.apply(null,list_distance);
+        var m1 = list_distance.indexOf(min_distance);
+        list_distance[m1] = 99999;
+        var second_min_distance = Math.min.apply(null,list_distance);
+        var m2 = list_distance.indexOf(second_min_distance);
+  
+        console.log(min_distance)
+        console.log(m1)
+        console.log(m2)
+        //オブジェクトリスト作成(一時的)とオブジェクトリスト作成(メイン)への追加
+        console.log(list_line_point)
+              
+        console.log(list_line_point[m1])
+        var xa = list_line_point[m1][0]
+        var ya = list_line_point[m1][1]
+        var xb = list_line_point[m2][0]
+        var yb = list_line_point[m2][1]
+        var visible = 1
+        var x0 = list_line_point[0][0]
+        var y0 = list_line_point[0][1]
+        var x1 = list_line_point[1][0]
+        var y1 = list_line_point[1][1]
+
+        var obj_quants = list_obj.length
+        var obj_name1 = "line_"+ (obj_quants) 
+        var obj_name2 = "line_"+ (obj_quants + 1)
+        var obj_name3 = "line_"+ (obj_quants + 2)
+
+        if (m2 > 1){
+            var temp_list_obj1 = [obj_name1,xa,ya,xb,yb,visible]
+            var temp_list_obj2 = [obj_name2,x0,y0,xa,ya,visible]
+            var temp_list_obj3 = [obj_name3,x1,y1,xb,yb,visible]
+            list_obj.push(temp_list_obj1)
+            list_obj.push(temp_list_obj2)
+            list_obj.push(temp_list_obj3)
+            list_obj.splice(n,1)
+        }else{
+            var obj_name1 = "line_"+ (obj_quants) 
+            var obj_name2 = "line_"+ (obj_quants + 1)
+            var temp_list_obj1 = [obj_name1,x0,y0,xa,ya,visible]
+            var temp_list_obj2 = [obj_name2,x1,y1,xb,yb,visible]
+            list_obj.push(temp_list_obj1)
+            list_obj.push(temp_list_obj2)
+            list_obj.splice(n,1)
+        }
+        console.log(min_distance)
+        list_distance.splice(0)
+    }
+
+    function sepalete_object(eX,eY){
+        var n = nearest_line(eX,eY)
+        cross_point(n,eX,eY)
+
+    }
+
+
+		
+ 
+    // Canvas上の座標を取得する関数
+    window.addEventListener('load', function(){
+    document.getElementById("canvas").addEventListener('mousemove', logPosition);
+    })
+	function logPosition(event) {
+		//console.log("offsetX: " + event.offsetX);
+		//console.log("offsetY: " + event.offsetY);
+		document.getElementById("area1").innerText = "X:"+event.offsetX+",Y:"+event.offsetY;
+    	};
+    window.addEventListener('load', function(){
+    document.getElementById("canvas").addEventListener('click', command_select);
+	})
+
+	function command_select(event) {
+		eX = event.offsetX
+		eY = event.offsetY
+		if (command_sw== '0'){
+			draws(eX,eY);
+		}else if (command_sw == '2'){
+
+			sepalete_object(eX,eY);
+		}else if (command_sw == '9'){
+			del_object(eX,eY);
+        }
+        redraw()
+	};
+
+    //canvasを再描画する。
+    function redraw(){
+        
+        ctx.clearRect(0,0,cnvWidth,cnvHeight);
+        setBgColor();
+        base_line();
+        ctx1.beginPath();
+        ctx1.lineWidth = cnvBold1;
+        ctx1.strokeStyle = '#ff0000';
+
+        for (var i = 0; i < list_obj.length; i++){
+	    var x1 = list_obj[i][1]
+	    var y1 = list_obj[i][2]
+	    var x2 = list_obj[i][3]
+	    var y2 = list_obj[i][4]
+        ctx1.beginPath();
+        ctx1.lineCap = "round";
+        ctx1.moveTo(x1,y1);
+        ctx1.lineTo(x2,y2);
+        ctx1.stroke();
+        ctx1.beginPath();
+        }
+    };
+
+    //オブジェクトをリストから削除する。
+	function del_object(eX,eY) {
+		var n = nearest_line(eX,eY);
+        if (n != 'None'){
+            console.log(list_obj)
+            list_obj.splice(n,1)
+            console.log(list_obj)
+        }
+	};
+
+    //線を加える
+	function draws(eX,eY) {
+      	ctx1.lineWidth = cnvBold1;
+      	ctx1.strokeStyle = 'rgba('+cnvColor1+')';
+	if (clickFlg== '0'){
+	clickFlg = 1;
+	//var eX = event.offsetX
+	//var eY = event.offsetY
+	var n = nearbypoint(eX,eY)
+	var first_pointX = pointX[n]
+	var first_pointY = pointY[n]
+	ctx1.moveTo(first_pointX, first_pointY);
+	}else if (clickFlg == '1'){
+	var n = nearbypoint(eX,eY)
+	var second_pointX = pointX[n];
+	var second_pointY = pointY[n];	
+	ctx1.lineTo(second_pointX, second_pointY);
+	ctx1.stroke();
+	//第1点の呼び出し
+	var click_quants = click_pointX.length
+	var p = click_quants - 2
+	//オブジェクト名の作成
+	var obj_quants = list_obj.length
+	var obj_name = "line_"+ obj_quants
+	//オブジェクトリスト作成(一時的)とオブジェクトリスト作成(メイン)への追加
+    var visible = 1
+	var temp_list_obj = [obj_name,click_pointX[p],click_pointY[p],second_pointX,second_pointY,visible]
+	list_obj.push(temp_list_obj)
+	console.log(list_obj)
+	}else{
+	ctx1.stroke();
+	}
+	};
+
+    window.addEventListener('load', function(){
+    document.getElementById("canvas").addEventListener('mouseout', cancel);
+    })
+	function cancel(event) {
+	ctx1.beginPath();
+	clickFlg = 0;
+	};
+
+    //消しゴム
+    //function erase(event) {
+	//ctx1.globalCompositeOperation = 'destination-out';
+	//};
+
+    // canvas上でのイベント
+    
+    //$("#canvas").mousedown(function(){
+    //  clickFlg = 1; // マウス押下開始
+    //  const mousePos = getMousePos(canvas, event);
+
+    //}).mouseup(function(){
+    //  clickFlg = 0; // マウス押下終了
+    //}).mousemove(function(e){
+      // マウス移動処理
+    //  if(!clickFlg) return false;
+    //  draw(e.offsetX, e.offsetY);
+    //});
+ 
+    // 描画処理
+    function draw_free(x, y) {
+      ctx.lineWidth = cnvBold;
+      ctx.strokeStyle = 'rgba('+cnvColor+')';
+      // 初回処理の判定
+      if (clickFlg == "1") {
+        clickFlg = "2";
+        ctx.beginPath();
+        ctx.lineCap = "round";  //　線を角丸にする
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    };
+
+    // 線分追加モードの変更　2024-02-03追加
+　　$("#add_obj").click(function(){
+	command_sw = "0";
+	console.log(command_sw);	
+　　})
+
+    // 線分削除モードの変更　2024-02-03追加
+　　$("#del_obj").click(function(){
+	command_sw = "9";
+	console.log(command_sw);
+　　})
+
+    // 線分削除モードの変更　2024-02-03追加
+    　　$("#sep_obj").click(function(){
+	command_sw = "2";
+	console.log(command_sw);
+　　})
+
+    // 描画クリア
+    $("#clear").click(function(){
+      ctx.clearRect(0,0,cnvWidth,cnvHeight);
+      list_obj.splice(0)
+      setBgColor();
+      base_line();
+      ctx1.beginPath();
+      
+      
+    });
+
+    // canvasを画像で保存
+    $("#download").click(function(){
+      canvas = document.getElementById('canvas');
+      var base64 = canvas.toDataURL("image/jpeg");
+      document.getElementById("download").href = base64;
+    });
+ 
+    function setBgColor(){
+      // canvasの背景色を設定(指定がない場合にjpeg保存すると背景が黒になる)
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0,0,cnvWidth,cnvHeight); 
+    }
+  </script>
+<div id="area1">X:none,Y:none</div>
+
+
+
+
+
+
+</body>
+
+<iframe width="800" height= 650  frameborder="0" seamless src = "https://p3d.in/e/LiI18">
+  
+</html>
