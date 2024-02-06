@@ -45,7 +45,6 @@
   </div>
   <input type="button" value="線を引く" id="add_obj">
   <input type="button" value="線を消す" id="del_obj">
-  <input type="button" value="(準備中)線を分割する" id="sep_obj">
   <input type="button" value="clear" id="clear">
   <a id="download" href="#" download="canvas.jpg">ダウンロード</a>
   <div id="result"><img decoding="async" src=""></div>
@@ -471,11 +470,7 @@
 	console.log(command_sw);
 　　})
 
-    // 線分削除モードの変更　2024-02-03追加
-    　　$("#sep_obj").click(function(){
-	command_sw = "2";
-	console.log(command_sw);
-　　})
+
 
     // 描画クリア
     $("#clear").click(function(){
